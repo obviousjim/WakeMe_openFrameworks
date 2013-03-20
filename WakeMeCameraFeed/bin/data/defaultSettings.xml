@@ -1,8 +1,11 @@
-<xshift>0.004500002</xshift>
-<yshift>0.002999991</yshift>
-<xsimplify>8589934592.000000000</xsimplify>
-<ysimplify>8589934592.000000000</ysimplify>
-<threshold>214.199996948</threshold>
-<minSize>23040.925781250</minSize>
-<minTriggerDepth>171.975006104</minTriggerDepth>
-<maxTriggerDepth>255.000000000</maxTriggerDepth>
+<tests>
+    <xshift>0.006</xshift>
+    <yshift>0.00299999</yshift>
+    <xsimplify>1.63</xsimplify>
+    <ysimplify>2.05</ysimplify>
+    <threshold>201</threshold>
+    <minSize>24576.9</minSize>
+    <minTriggerDepth>201.7</minTriggerDepth>
+    <maxTriggerDepth>255</maxTriggerDepth>
+    <auto_fire>0</auto_fire>
+</tests>
