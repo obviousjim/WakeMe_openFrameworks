@@ -8,11 +8,11 @@
     <minTriggerDepth>195.55</minTriggerDepth>
     <maxTriggerDepth>255</maxTriggerDepth>
     <auto_fire>0</auto_fire>
-    <xTranslate>100</xTranslate>
-    <yTranslate>-7</yTranslate>
-    <zTransalte>2910</zTransalte>
+    <xTranslate>-100</xTranslate>
+    <yTranslate>-100</yTranslate>
+    <zTransalte>1000</zTransalte>
     <xRotate>0</xRotate>
-    <yRotate>185.4</yRotate>
-    <zRotate>360</zRotate>
+    <yRotate>0</yRotate>
+    <zRotate>0</zRotate>
     <auto_update_mesh>1</auto_update_mesh>
 </tests>

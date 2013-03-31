@@ -43,6 +43,17 @@ public:
 	ofxFloatSlider minSize;
 	ofxFloatSlider minTriggerDepth;
 	ofxFloatSlider maxTriggerDepth;
+	
+	ofxToggle alwaysUpdate;
+	
+	ofxFloatSlider xTranslate;
+	ofxFloatSlider yTranslate;
+	ofxFloatSlider zTranslate;
+	
+	ofxFloatSlider xRotate;
+	ofxFloatSlider yRotate;
+	ofxFloatSlider zRotate;
+	
 	ofxToggle autoFire;
 
 	ofxRGBDCPURenderer renderer1;
@@ -51,6 +62,8 @@ public:
 	ofImage photoPreview;
 	ofxOscSender sender;
 	ofxGameCamera cam;
+	
+	ofMatrix4x4 getMatrix();
 	
 	bool showRGBD;
 	bool showPointcloud;
@@ -62,8 +75,10 @@ public:
 	ofVec3f translation;
 
 	ofxCv::ContourFinder contourFinder;
-	void fireCamera();
+	ofxCv::ContourFinder backContourFinder;
 	
+	void fireCamera();
+	float areaDepth;
 	bool inThreshold;
 	bool shouldFireCamera;
 	

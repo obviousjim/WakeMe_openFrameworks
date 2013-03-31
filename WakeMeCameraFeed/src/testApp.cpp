@@ -25,13 +25,23 @@ void testApp::setup() {
 	gui.setup("tests");
     gui.add(xshift.setup("xshift", ofParameter<float>(), -.15, .15));
     gui.add(yshift.setup("yshift", ofParameter<float>(), -.15, .15));
-    gui.add(xsimplify.setup("xsimplify", ofParameter<float>(), 1, 8));
-    gui.add(ysimplify.setup("ysimplify", ofParameter<float>(), 1, 8));
 	gui.add(threshold.setup("threshold", ofParameter<float>(), 15, 255));
 	gui.add(minSize.setup("minSize", ofParameter<float>(), 1, 640*480));
 	gui.add(minTriggerDepth.setup("minTriggerDepth", ofParameter<float>(), 50, 255));
 	gui.add(maxTriggerDepth.setup("maxTriggerDepth", ofParameter<float>(), 50, 255));
 	gui.add(autoFire.setup("auto fire", ofParameter<bool>()));
+	
+	
+	gui.add(xTranslate.setup("xTranslate", ofParameter<float>(), -100, 100));
+	gui.add(yTranslate.setup("yTranslate", ofParameter<float>(), -100, 100));
+	gui.add(zTranslate.setup("zTransalte", ofParameter<float>(), 1000, 3000));
+	
+	gui.add(xRotate.setup("xRotate", ofParameter<float>(), 0, 360));
+	gui.add(yRotate.setup("yRotate", ofParameter<float>(), 0, 360));
+	gui.add(zRotate.setup("zRotate", ofParameter<float>(), 0, 360));
+	gui.add(alwaysUpdate.setup("auto update mesh", ofParameter<bool>()));
+	
+	gui.setPosition(ofPoint(640*2, 0));
 	
 	rotation = ofQuaternion(0.001134582, 0.9988741, 0.03121687, 0.0357037);
 	translation = ofVec3f(-70.8, -71.8, 2680.2);
@@ -54,8 +64,8 @@ void testApp::setup() {
 	renderer1.setSimplification(ofVec2f(5,5));
 	renderer2.setSimplification(ofVec2f(5,5));
 
-	renderer1.farClip = 2100;
-	renderer2.farClip = 2100;
+	renderer1.farClip = 1900;
+	renderer2.farClip = 1900;
 	
 	renderer1.cacheValidVertices = true;
 	renderer2.cacheValidVertices = true;
@@ -93,6 +103,7 @@ void testApp::setup() {
 	ofxCv::loadMat(rvec, "rotation.yml");
 	ofxCv::loadMat(tvec, "translation.yml");
 	
+
 }
 
 void testApp::update() {
@@ -121,8 +132,8 @@ void testApp::update() {
 					maxAreaIndex = i;
 				}
 			}
-			ofPoint center = ofxCv::toOf(contourFinder.getCenter(maxAreaIndex) );
-			float areaDepth =  depthImage1.getColor( center.x, center.y ).getBrightness();
+			ofPoint center = ofxCv::toOf( contourFinder.getCenter(maxAreaIndex) );
+			areaDepth =  depthImage1.getColor( center.x, center.y ).getBrightness();
 			//cout << "depth? " << areaDepth << endl;
 			if(areaDepth > minTriggerDepth && areaDepth < maxTriggerDepth){
 				ghostFrames = 0;
@@ -138,15 +149,20 @@ void testApp::update() {
 					cout << "FIRING CAMERA!" << endl;
 				}
 			}
-			else{
+			else {
 				if(ghostFrames++ > 5){
 					inThreshold = false;
 				}
 			}
 		}
+		else {
+			if(inThreshold && ghostFrames++ > 5){
+				inThreshold = false;
+			}
+		}
 		
-		if(showRGBD){
-			//renderer1.update();
+		if(showRGBD && alwaysUpdate){
+			renderer1.update();
 		}
 		
 		//cout << "found " << contourFinder.size() << endl;
@@ -161,9 +177,16 @@ void testApp::update() {
 	
 	back.update();
 	if(back.isFrameNew()){
+		
 		compressor.convertTo8BitImage(back.getRawDepth(), depthImage2);
-		if(showRGBD){
-			//renderer2.update();
+		
+		backContourFinder.setThreshold(threshold);
+		backContourFinder.setMinArea(minSize);
+		
+		backContourFinder.findContours(depthImage2);
+
+		if(showRGBD && alwaysUpdate){
+			renderer2.update();
 		}
 	}
 	
@@ -235,17 +258,25 @@ void testApp::draw() {
 		ofSetColor(255);
 		cam.begin(rgbdRect);
 		
-		renderer1.drawMesh();
+		glEnable(GL_DEPTH);
+		renderer1.drawWireFrame();
 		
 		ofPushMatrix();
+		
 //		ofMultMatrix(calibrationMatrix);
-		ofVec3f axis;
-		float angle;
-		rotation.getRotate(angle, axis);
-		ofRotate(-angle, axis.x,axis.y,axis.z);
-		ofTranslate(-translation);
-		renderer2.drawMesh();
+//		ofVec3f axis;
+//		float angle;
+//		rotation.getRotate(angle, axis);
+//		ofRotate(-angle, axis.x,axis.y,axis.z);
+//		ofTranslate(-translation);
+		
+		ofMultMatrix(getMatrix());
+		renderer2.drawWireFrame();
+		
 		ofPopMatrix();
+		
+		glDisable(GL_DEPTH);
+
 		cam.end();
 	}
 	else{
@@ -256,6 +287,7 @@ void testApp::draw() {
 
 		if(depthImage1.isAllocated()) depthImage1.draw(0, 0);
 		if(depthImage2.isAllocated()) depthImage2.draw(640, 0);
+		
 		if(inThreshold){
 			ofSetColor(255,200,10);
 		}
@@ -263,16 +295,33 @@ void testApp::draw() {
 			ofSetColor(255);
 		}
 		contourFinder.draw();
+		
+		ofPushMatrix();
+		ofTranslate(640, 0);
+		backContourFinder.draw();
+		ofPopMatrix();
+		
 		ofSetColor(255);
 		
 		ofPushStyle();
-		for(int i = 0; i < 4; i++){
-			ofSetColor(	markerColors[i] );
-			ofCircle(depthImage1Rect.getTopLeft() + cam1Calib[i], 5);
-			ofCircle(depthImage2Rect.getTopLeft() + cam2Calib[i], 5);
-
-		}
+//		for(int i = 0; i < 4; i++){
+//			ofSetColor(	markerColors[i] );
+//			ofCircle(depthImage1Rect.getTopLeft() + cam1Calib[i], 5);
+//			ofCircle(depthImage2Rect.getTopLeft() + cam2Calib[i], 5);
+//
+//		}
+		//draw cross hires
+		ofSetLineWidth(3);
+		ofSetColor(255, 100, 100, 150);
+		ofLine(320, 0, 320, 480);
+		ofLine(640+320, 0, 640+320, 480);
+		ofLine(0, 240, 640*2, 240);
 		ofPopStyle();
+		
+		ofDrawBitmapString("area depth: " + ofToString(areaDepth,1) + "\n"+
+						   "time in thresdhold: " + ofToString(ofGetElapsedTimef() - thresholdEnteredTime,1),
+						   10, 500);
+
 	}
 	
 	gui.draw();
@@ -293,6 +342,19 @@ void testApp::draw() {
 	if(pix.isAllocated()){
 //		pix.draw(0,0);
 	}
+}
+
+
+ofMatrix4x4 testApp::getMatrix(){
+	ofMatrix4x4 mat;
+	ofQuaternion quat;
+	quat.makeRotate(xRotate, ofVec3f(1,0,0),
+					yRotate, ofVec3f(0,1,0),
+					zRotate, ofVec3f(0,0,1));
+	
+	mat.makeRotationMatrix(quat);
+	mat.translate(xTranslate, yTranslate, zTranslate);
+	return mat;
 }
 
 void testApp::keyPressed(int key) {
@@ -364,7 +426,9 @@ void testApp::mousePressed(int x, int y,int button ){
 }
 
 void testApp::fireCamera(){
+	
 	cout << "Firing camrea now" << endl;
+	
 	shouldFireCamera = false;
 	camera1.takePhoto();
 	
@@ -384,11 +448,10 @@ void testApp::fireCamera(){
 	//stitch together mesh
 //	ofxObjLoader::save(f.getAbsolutePath() + "/mesh1.obj", mesh1);
 //	ofxObjLoader::save(f.getAbsolutePath() + "/mesh2.obj", mesh2);
-
 //	ofQuaternion rotation(0.001134582, 0.9988741, 0.03121687, 0.0357037);
 //	ofVec3f translation(-70.8, -71.8, 2680.2);
 	
-	front.getColorImage().saveImage(f.getAbsolutePath() + "/backTexture.png");
+	//front.getColorImage().saveImage(f.getAbsolutePath() + "/backTexture.png");
 	currentSaveDirectory = f.getAbsolutePath();
 	
 	//		ofxOscMessage m;
@@ -399,25 +462,46 @@ void testApp::fireCamera(){
 
 //--------------------------------------------------------------
 void testApp::saveCombinedMesh(string path){
-	ofMesh mesh1 = renderer1.getReducedMesh(true, ofVec3f(1,1,1), false, true);
-	ofMesh mesh2 = renderer2.getReducedMesh(true, ofVec3f(1,1,1), false, true);
-	int originalIndeces = mesh1.getNumVertices();
-	ofQuaternion fixedrot;
-	ofVec3f axis;
-	float angle;
-	rotation.getRotate(angle, axis);
-	fixedrot.makeRotate(170, 0,1,0);
-
-	for(int i = 0; i < mesh2.getNumVertices(); i++){
-		mesh1.addVertex( (rotation * mesh2.getVertices()[i]) + translation );
-		mesh1.addTexCoord(ofVec2f(0,0)); //TODO back texture
-	}
-	for(int i = 0; i < mesh2.getNumIndices(); i++){
-		mesh1.addIndex(originalIndeces + mesh2.getIndexPointer()[i]);
-	}
-		
-	ofxObjLoader::save(path, mesh1);
+	ofMesh mesh;
+	renderer1.getReducedMesh(mesh, true, false, true);
+	cout << "renderer 1 " << mesh.getNumVertices() << " verts and " << mesh.getNumTexCoords() << " tex coords " << endl;
+	renderer2.getReducedMesh(mesh, true, false, true, getMatrix());
 	
+	while(mesh.getNumTexCoords() < mesh.getNumVertices()){
+		mesh.addTexCoord(ofVec2f(0,0));
+	}
+	cout << "mesh has " << mesh.getNumVertices() << " verts and " << mesh.getNumTexCoords() << " tex coords " << endl;
+	
+//	int originalIndeces = mesh1.getNumVertices();
+//	ofQuaternion fixedrot;
+//	ofVec3f axis;
+//	float angle;
+//	rotation.getRotate(angle, axis);
+//	fixedrot.makeRotate(170, 0,1,0);
+//	
+//	for(int i = 0; i < mesh2.getNumVertices(); i++){
+//		mesh1.addVertex( (rotation * mesh2.getVertices()[i]) + translation );
+//		mesh1.addTexCoord(ofVec2f(0,0)); //TODO back texture
+//	}
+//	for(int i = 0; i < mesh2.getNumIndices(); i++){
+//		mesh1.addIndex(originalIndeces + mesh2.getIndexPointer()[i]);
+//	}
+//	
+	//stitch!
+	ofIndexType curIndex = 0;
+	for(int y = 0; y < depthImage1.getHeight() / renderer1.getSimplification().y; y++){
+		//find the corresponding index based on the pixel
+		bool inside = false;
+
+		for(int x = 0; x < depthImage2.getHeight() / renderer1.getSimplification().y; x++){
+			//find the edge jumps that are inside
+			if(renderer1.isIndexValid(curIndex) && !inside){
+				inside = true;
+			}
+		}
+	}
+	
+	ofxObjLoader::save(path, mesh);
 }
 
 //--------------------------------------------------------------
@@ -539,8 +623,8 @@ void testApp::saveCalibrationPoints(){
 }
 
 void testApp::saveTestObjs(){
-	ofMesh mesh1 = renderer1.getReducedMesh(true, ofVec3f(1,1,1), false, true);
-	ofMesh mesh2 = renderer2.getReducedMesh(true, ofVec3f(1,1,1), false, true);
+	ofMesh mesh1 = renderer1.getReducedMesh(true, false, true);
+	ofMesh mesh2 = renderer2.getReducedMesh(true, false, true);
 	ofxObjLoader::save("Test1.obj", mesh1);
 	ofxObjLoader::save("Test2.obj", mesh2);
 	
