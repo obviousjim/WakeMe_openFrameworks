@@ -50,7 +50,6 @@
 		E7A5A6BC16E1397B003FCBB8 /* ofxDepthImageCompressor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E7A5A67116E13979003FCBB8 /* ofxDepthImageCompressor.cpp */; };
 		E7A5A6BD16E1397B003FCBB8 /* ofxDepthImageProvider.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E7A5A67316E13979003FCBB8 /* ofxDepthImageProvider.cpp */; };
 		E7A5A6BF16E1397B003FCBB8 /* ofxDepthImageSequence.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E7A5A67716E13979003FCBB8 /* ofxDepthImageSequence.cpp */; };
-		E7A5A6C016E1397B003FCBB8 /* ofxRGBDAlignment.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E7A5A67916E13979003FCBB8 /* ofxRGBDAlignment.cpp */; };
 		E7A5A6C116E1397B003FCBB8 /* ofxRGBDCPURenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E7A5A67B16E13979003FCBB8 /* ofxRGBDCPURenderer.cpp */; };
 		E7A5A6C216E1397B003FCBB8 /* ofxRGBDGPURenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E7A5A67D16E13979003FCBB8 /* ofxRGBDGPURenderer.cpp */; };
 		E7A5A6C316E1397B003FCBB8 /* ofxRGBDPlayer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E7A5A67F16E13979003FCBB8 /* ofxRGBDPlayer.cpp */; };
@@ -238,8 +237,6 @@
 		E7A5A67416E13979003FCBB8 /* ofxDepthImageProvider.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxDepthImageProvider.h; sourceTree = "<group>"; };
 		E7A5A67716E13979003FCBB8 /* ofxDepthImageSequence.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxDepthImageSequence.cpp; sourceTree = "<group>"; };
 		E7A5A67816E13979003FCBB8 /* ofxDepthImageSequence.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxDepthImageSequence.h; sourceTree = "<group>"; };
-		E7A5A67916E13979003FCBB8 /* ofxRGBDAlignment.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxRGBDAlignment.cpp; sourceTree = "<group>"; };
-		E7A5A67A16E13979003FCBB8 /* ofxRGBDAlignment.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxRGBDAlignment.h; sourceTree = "<group>"; };
 		E7A5A67B16E13979003FCBB8 /* ofxRGBDCPURenderer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxRGBDCPURenderer.cpp; sourceTree = "<group>"; };
 		E7A5A67C16E13979003FCBB8 /* ofxRGBDCPURenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxRGBDCPURenderer.h; sourceTree = "<group>"; };
 		E7A5A67D16E13979003FCBB8 /* ofxRGBDGPURenderer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxRGBDGPURenderer.cpp; sourceTree = "<group>"; };
@@ -934,8 +931,6 @@
 				E7A5A67416E13979003FCBB8 /* ofxDepthImageProvider.h */,
 				E7A5A67716E13979003FCBB8 /* ofxDepthImageSequence.cpp */,
 				E7A5A67816E13979003FCBB8 /* ofxDepthImageSequence.h */,
-				E7A5A67916E13979003FCBB8 /* ofxRGBDAlignment.cpp */,
-				E7A5A67A16E13979003FCBB8 /* ofxRGBDAlignment.h */,
 				E7A5A67B16E13979003FCBB8 /* ofxRGBDCPURenderer.cpp */,
 				E7A5A67C16E13979003FCBB8 /* ofxRGBDCPURenderer.h */,
 				E7A5A67D16E13979003FCBB8 /* ofxRGBDGPURenderer.cpp */,
@@ -1782,7 +1777,6 @@
 				E7A5A6BC16E1397B003FCBB8 /* ofxDepthImageCompressor.cpp in Sources */,
 				E7A5A6BD16E1397B003FCBB8 /* ofxDepthImageProvider.cpp in Sources */,
 				E7A5A6BF16E1397B003FCBB8 /* ofxDepthImageSequence.cpp in Sources */,
-				E7A5A6C016E1397B003FCBB8 /* ofxRGBDAlignment.cpp in Sources */,
 				E7A5A6C116E1397B003FCBB8 /* ofxRGBDCPURenderer.cpp in Sources */,
 				E7A5A6C216E1397B003FCBB8 /* ofxRGBDGPURenderer.cpp in Sources */,
 				E7A5A6C316E1397B003FCBB8 /* ofxRGBDPlayer.cpp in Sources */,

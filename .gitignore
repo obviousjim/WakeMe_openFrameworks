@@ -12,5 +12,10 @@
 *.la
 *.a
 .DS_Store
-
+*.obj
+*.png
+*.zip
+xcuserdata/
+*.xcworkspace
+*.jpg
 *.app

@@ -10,6 +10,7 @@
 #include "ofxOsc.h"
 #include "ofxGameCamera.h"
 #include "ofxGui.h"
+#include "ofxDepthHoleFiller.h"
 
 class testApp : public ofBaseApp {
 public:
@@ -25,6 +26,8 @@ public:
 //	ofxEdsdk::Camera camera2;
     int numDevices;
 //	ofxOpenNI* openNIDevices[MAX_DEVICES];
+	
+	ofxDepthHoleFiller filler;
 	
 	ofxDepthImageProviderOpenNI front;
 	ofxDepthImageProviderOpenNI back;
@@ -43,6 +46,8 @@ public:
 	ofxFloatSlider minSize;
 	ofxFloatSlider minTriggerDepth;
 	ofxFloatSlider maxTriggerDepth;
+	ofxFloatSlider delay;
+	ofxFloatSlider edgeClip;
 	
 	ofxToggle alwaysUpdate;
 	
@@ -59,15 +64,21 @@ public:
 	ofxRGBDCPURenderer renderer1;
 	ofxRGBDCPURenderer renderer2;
 
+
 	ofImage photoPreview;
 	ofxOscSender sender;
 	ofxGameCamera cam;
 	
 	ofMatrix4x4 getMatrix();
-	
+	float cameraFiredTime;
 	bool showRGBD;
 	bool showPointcloud;
-	
+	bool pullBackRender;
+	bool pullFrontRender;
+	void edgeDataForRenderer(ofxRGBDCPURenderer& renderer,
+							 map<int, pair<ofIndexType, ofIndexType> >& edges,
+							 vector<int>& validRows);
+		
 	void saveTestObjs();
 	void exit();
 	string currentSaveDirectory;

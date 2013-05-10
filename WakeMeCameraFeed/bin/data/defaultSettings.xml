@@ -1,5 +1,5 @@
 <tests>
-    <xshift>0</xshift>
+    <xshift>0.0225</xshift>
     <yshift>0</yshift>
     <xsimplify>2.4</xsimplify>
     <ysimplify>1.0842e-19</ysimplify>
@@ -7,12 +7,15 @@
     <minSize>19968.9</minSize>
     <minTriggerDepth>195.55</minTriggerDepth>
     <maxTriggerDepth>255</maxTriggerDepth>
-    <auto_fire>0</auto_fire>
+    <auto_fire>1</auto_fire>
     <xTranslate>100</xTranslate>
     <yTranslate>-7</yTranslate>
     <zTransalte>2910</zTransalte>
     <xRotate>0</xRotate>
     <yRotate>185.4</yRotate>
     <zRotate>360</zRotate>
-    <auto_update_mesh>1</auto_update_mesh>
+    <auto_update_mesh>0</auto_update_mesh>
+    <depth_delay>0.59</depth_delay>
+    <UnknownName>342.5</UnknownName>
+    <edge_clip>674</edge_clip>
 </tests>

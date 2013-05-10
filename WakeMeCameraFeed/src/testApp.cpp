@@ -4,24 +4,27 @@ void testApp::setup() {
 	
 	ofEnableAlphaBlending();
 	ofSetVerticalSync(true);
-	ofSetLogLevel(OF_LOG_VERBOSE);
+//	ofSetLogLevel(OF_LOG_VERBOSE);
 	camera1.setup(0);
 	front.setup(0,true);
 	back.setContext(front.getContext());
 	back.setup(1);
 	ghostFrames = 0;
-
+	
 	showPointcloud = false;
 	showRGBD = false;
 	
 	cam1Calib.resize(4);
 	cam2Calib.resize(4);
 
+	pullBackRender = false;
+	pullFrontRender = false;
+
 	timeBetweenTriggers = 6;
 	timeOfNextTrigger = 0;
 	
-	requiredThresholdTime = 7;
-
+	requiredThresholdTime = 2;
+	
 	gui.setup("tests");
     gui.add(xshift.setup("xshift", ofParameter<float>(), -.15, .15));
     gui.add(yshift.setup("yshift", ofParameter<float>(), -.15, .15));
@@ -29,6 +32,8 @@ void testApp::setup() {
 	gui.add(minSize.setup("minSize", ofParameter<float>(), 1, 640*480));
 	gui.add(minTriggerDepth.setup("minTriggerDepth", ofParameter<float>(), 50, 255));
 	gui.add(maxTriggerDepth.setup("maxTriggerDepth", ofParameter<float>(), 50, 255));
+	gui.add(delay.setup("depth delay", ofParameter<float>(), 0, 2));
+	gui.add(edgeClip.setup("edge clip", ofParameter<float>(), 50, 2000));
 	gui.add(autoFire.setup("auto fire", ofParameter<bool>()));
 	
 	
@@ -81,6 +86,7 @@ void testApp::setup() {
 	
 	
 	contourFinder.setMinAreaRadius(1);
+	backContourFinder.setMinAreaRadius(1);
 //	contourFinder.setMaxAreaRadius(100);
 
 	markerColors[0] = ofColor(232,   0, 122);
@@ -116,11 +122,11 @@ void testApp::update() {
 	
 	front.update();
 	if(front.isFrameNew()){
-		contourFinder.setThreshold(threshold);
-		contourFinder.setMinArea(minSize);
 		
 		compressor.convertTo8BitImage(front.getRawDepth(), depthImage1);
-		
+
+		contourFinder.setThreshold(threshold);
+		contourFinder.setMinArea(minSize);
 		contourFinder.findContours(depthImage1);
 		if(contourFinder.size() > 0){
 			int maxAreaIndex = 0;
@@ -145,12 +151,14 @@ void testApp::update() {
 //				cout << "time in threshold " << timeInThreshold << endl;
 				if(timeInThreshold > requiredThresholdTime){
 					shouldFireCamera = true;
+					requiredThresholdTime = 7;
 					inThreshold = false;
 					cout << "FIRING CAMERA!" << endl;
 				}
 			}
 			else {
 				if(ghostFrames++ > 5){
+					requiredThresholdTime = 2;
 					inThreshold = false;
 				}
 			}
@@ -158,11 +166,14 @@ void testApp::update() {
 		else {
 			if(inThreshold && ghostFrames++ > 5){
 				inThreshold = false;
+				requiredThresholdTime = 2;
 			}
 		}
 		
-		if(showRGBD && alwaysUpdate){
+		if( (showRGBD && alwaysUpdate) || (pullFrontRender && (ofGetElapsedTimef() - cameraFiredTime) > delay) ){
+			pullFrontRender = false;
 			renderer1.update();
+			cout << "front renderer pulled after " << ofGetElapsedTimef() - cameraFiredTime << endl;
 		}
 		
 		//cout << "found " << contourFinder.size() << endl;
@@ -185,19 +196,31 @@ void testApp::update() {
 		
 		backContourFinder.findContours(depthImage2);
 
-		if(showRGBD && alwaysUpdate){
+		if((pullBackRender && (ofGetElapsedTimef() - cameraFiredTime) > delay) || (showRGBD && alwaysUpdate) ){
+			pullBackRender = false;
 			renderer2.update();
+			cout << "back renderer pulled after " << ofGetElapsedTimef() - cameraFiredTime << endl;
 		}
 	}
 	
 	camera1.update();
-	if(camera1.isFrameNew()) {
-		// process the live view with camera.getLivePixels()
-		pix.setFromPixels(camera1.getLivePixels());
-	}
+//	if(camera1.isFrameNew()) {
+//		// process the live view with camera.getLivePixels()
+//		pix.setFromPixels(camera1.getLivePixels());
+//	}
 	
-	if(renderer1.shift.x != xshift || renderer1.shift.y != yshift){
+	if(renderer1.shift.x != xshift ||
+	   renderer1.shift.y != yshift ||
+	   renderer1.edgeClip != edgeClip ||
+	   renderer2.edgeClip != edgeClip)
+	{
+		renderer1.edgeClip = edgeClip;
+		renderer2.edgeClip = edgeClip;
+		
 		renderer1.shift = ofVec2f(xshift,yshift);
+		
+		filler.close(renderer1.getDepthImage());
+		
 		renderer1.update();
 	}
 	
@@ -205,23 +228,27 @@ void testApp::update() {
 		// process the photo with camera.getPhotoPixels()
 		// or just save the photo to disk (jpg only):
 		cout << "saved camera 1 photo" << endl;
+
 		if(renderer1.hasTriangles && renderer2.hasTriangles){
-			//camera1.savePhoto(ofToString(ofGetFrameNum()) + ".jpg");
+
 			camera1.getPhotoPixels().resize(696, 464);
-			//camera1.savePhoto(currentSaveDirectory + "/photo.jpg");
 			ofSaveImage(camera1.getPhotoPixels(), currentSaveDirectory + "/photo.jpg");
-			
-			ofSleepMillis(500);
-			
+			saveCombinedMesh( currentSaveDirectory + "/mesh.obj" );
+
 			ofxOscMessage m;
 			m.setAddress("/mesh");
 			m.addStringArg("file://"+currentSaveDirectory);
 			sender.sendMessage(m);
+
+			//camera1.savePhoto(currentSaveDirectory + "/photo.jpg");
+			
+			cout << "*** Message finally sent after " << ofGetElapsedTimef() - cameraFiredTime << endl;
 		}
-//		if(showRGBD){
+		
+		if(showRGBD){
 			photoPreview.setFromPixels(camera1.getPhotoPixels());
 			renderer1.update();
-//		}
+		}
 		inThreshold = false;
 	}
 	
@@ -318,12 +345,12 @@ void testApp::draw() {
 		ofLine(0, 240, 640*2, 240);
 		ofPopStyle();
 		
-		ofDrawBitmapString("area depth: " + ofToString(areaDepth,1) + "\n"+
-						   "time in thresdhold: " + ofToString(ofGetElapsedTimef() - thresholdEnteredTime,1),
-						   10, 500);
-
 	}
-	
+	ofDrawBitmapString("framerate " + ofToString(ofGetFrameRate()) + "\n" +
+					   "area depth: " + ofToString(areaDepth,1) + "\n"+
+					   "time in thresdhold: " + ofToString(ofGetElapsedTimef() - thresholdEnteredTime,1),
+					   10, 500);
+
 	gui.draw();
 	
 //	camera2.draw(0, 0);
@@ -427,81 +454,119 @@ void testApp::mousePressed(int x, int y,int button ){
 
 void testApp::fireCamera(){
 	
-	cout << "Firing camrea now" << endl;
-	
-	shouldFireCamera = false;
-	camera1.takePhoto();
-	
 	ofDirectory dir;
 	char pathc[1024];
 	sprintf(pathc, "%02d_%02d_%02d_%02d", ofGetDay(), ofGetHours(), ofGetMinutes(), ofGetSeconds());
 	string path(pathc);
 	dir.createDirectory(path);
 	
-	renderer1.update();
-	renderer2.update();
+	cameraFiredTime = ofGetElapsedTimef();
+	
+	cout << "Firing camera at time "<< cameraFiredTime << endl;
+	
+	shouldFireCamera = false;
+	
+	camera1.takePhoto();
+	pullBackRender = true;
+	pullFrontRender = true;
+	
 	
 	ofFile f(path);
-	cout << " absolute path is " << f.getAbsolutePath() << endl;
-	
-	saveCombinedMesh( f.getAbsolutePath() + "/mesh.obj" );
-	//stitch together mesh
-//	ofxObjLoader::save(f.getAbsolutePath() + "/mesh1.obj", mesh1);
-//	ofxObjLoader::save(f.getAbsolutePath() + "/mesh2.obj", mesh2);
-//	ofQuaternion rotation(0.001134582, 0.9988741, 0.03121687, 0.0357037);
-//	ofVec3f translation(-70.8, -71.8, 2680.2);
-	
-	//front.getColorImage().saveImage(f.getAbsolutePath() + "/backTexture.png");
 	currentSaveDirectory = f.getAbsolutePath();
 	
-	//		ofxOscMessage m;
-	//		m.setAddress("/mesh");
-	//		m.addStringArg("file://"+f.getAbsolutePath());
-	//		sender.sendMessage(m);
+	cout << " absolute path is " << f.getAbsolutePath() << endl;
+	
+	//front.getColorImage().saveImage(f.getAbsolutePath() + "/backTexture.png");
 }
 
 //--------------------------------------------------------------
 void testApp::saveCombinedMesh(string path){
 	ofMesh mesh;
 	renderer1.getReducedMesh(mesh, true, false, true);
-	cout << "renderer 1 " << mesh.getNumVertices() << " verts and " << mesh.getNumTexCoords() << " tex coords " << endl;
-	renderer2.getReducedMesh(mesh, true, false, true, getMatrix());
+	ofIndexType indexOffset = mesh.getNumIndices();
 	
+	renderer2.getReducedMesh(mesh, true, false, true, getMatrix());
 	while(mesh.getNumTexCoords() < mesh.getNumVertices()){
 		mesh.addTexCoord(ofVec2f(0,0));
 	}
-	cout << "mesh has " << mesh.getNumVertices() << " verts and " << mesh.getNumTexCoords() << " tex coords " << endl;
+
+	/*
+	map<int, pair<ofIndexType, ofIndexType> > frontEdges;
+	map<int, pair<ofIndexType, ofIndexType> > backEdges;
+	vector<int> frontRows;
+	vector<int> backRows;
 	
-//	int originalIndeces = mesh1.getNumVertices();
-//	ofQuaternion fixedrot;
-//	ofVec3f axis;
-//	float angle;
-//	rotation.getRotate(angle, axis);
-//	fixedrot.makeRotate(170, 0,1,0);
-//	
-//	for(int i = 0; i < mesh2.getNumVertices(); i++){
-//		mesh1.addVertex( (rotation * mesh2.getVertices()[i]) + translation );
-//		mesh1.addTexCoord(ofVec2f(0,0)); //TODO back texture
-//	}
-//	for(int i = 0; i < mesh2.getNumIndices(); i++){
-//		mesh1.addIndex(originalIndeces + mesh2.getIndexPointer()[i]);
-//	}
-//	
-	//stitch!
-	ofIndexType curIndex = 0;
-	for(int y = 0; y < depthImage1.getHeight() / renderer1.getSimplification().y; y++){
+	edgeDataForRenderer(renderer1, frontEdges, frontRows);
+	edgeDataForRenderer(renderer2, backEdges, backRows);
+	int numBackRows = backRows.size();
+	int backRowIndex = 0;
+	for(int y = 0; y < frontRows.size()-1; y++){
+		
+		int backRow = backRows[MIN(backRowIndex,numBackRows-1) ];
+		int backRowBelow = backRows[MIN(backRowIndex+1,numBackRows-1)];
+		int frontRow = frontRows[y];
+		int frontRowBelow = frontRows[y+1];
+		
+		mesh.addIndex( renderer1.reducedMeshIndex[ frontEdges[ frontRow ].first ] );
+		mesh.addIndex( renderer2.reducedMeshIndex[ backEdges[ backRow ].first ] + indexOffset);
+		mesh.addIndex( renderer1.reducedMeshIndex[ frontEdges[ frontRowBelow ].first ] );
+
+		mesh.addIndex( renderer2.reducedMeshIndex[ backEdges[ backRow ].first ] + indexOffset);
+		mesh.addIndex( renderer2.reducedMeshIndex[ backEdges[ backRowBelow ].first ] + indexOffset);
+		mesh.addIndex( renderer1.reducedMeshIndex[ frontEdges[ frontRowBelow ].first ] );
+
+		mesh.addIndex( renderer1.reducedMeshIndex[ backEdges[ backRow ].second ] );
+		mesh.addIndex( renderer2.reducedMeshIndex[ backEdges[ backRowBelow ].second ] + indexOffset );
+		mesh.addIndex( renderer1.reducedMeshIndex[ frontEdges[ frontRowBelow ].second ] );
+
+		mesh.addIndex( renderer2.reducedMeshIndex[ backEdges[ backRow ].first ] + indexOffset);
+		mesh.addIndex( renderer2.reducedMeshIndex[ backEdges[ backRowBelow ].second ]  + indexOffset);
+		mesh.addIndex( renderer1.reducedMeshIndex[ frontEdges[ frontRowBelow ].second ] );
+				
+		backRowIndex++;
+		
+	}
+	*/
+	
+	ofxObjLoader::save(path, mesh);
+}
+
+//--------------------------------------------------------------
+void testApp::edgeDataForRenderer(ofxRGBDCPURenderer& renderer, map<int, pair<ofIndexType, ofIndexType> >& edges, vector<int>& validRows){
+	//stitch
+	//row to edge indeces
+	for(int y = 0; y < renderer.vertsPerCol; y++){
 		//find the corresponding index based on the pixel
 		bool inside = false;
-
-		for(int x = 0; x < depthImage2.getHeight() / renderer1.getSimplification().y; x++){
+		int startIndex, endIndex;
+		bool foundRight = false;
+		bool foundLeft  = false;
+		ofIndexType curIndex = y * renderer.vertsPerRow;
+		for(int x = 0; x < renderer.vertsPerRow; x++) {
 			//find the edge jumps that are inside
-			if(renderer1.isIndexValid(curIndex) && !inside){
-				inside = true;
+			if(renderer.isIndexValid(curIndex + x)){
+				startIndex = curIndex + x;
+				foundLeft = true;
+				break;
+			}
+		}
+		
+		if(foundLeft) {
+			curIndex = y * renderer.vertsPerRow;
+			for(int x = renderer.vertsPerRow - 1; x >= 0 ; x--){
+				if( renderer.isIndexValid(curIndex + x) ){
+					endIndex = curIndex + x;
+					foundRight = true;
+					edges[y] = make_pair(startIndex,endIndex);
+					validRows.push_back(y);
+					
+					cout << "found index for row " << y << " at " << startIndex << " " << endIndex << endl;
+					
+					break;
+				}
 			}
 		}
 	}
-	
-	ofxObjLoader::save(path, mesh);
 }
 
 //--------------------------------------------------------------
@@ -515,7 +580,6 @@ void testApp::calibrate(){
 //	calibrator.refineDepthCalibration(cam2CalibBase, cam2CalibRefined, &back);
 	
 	vector<cv::Point2f> imagePoints1,imagePoints2;
-	
 	for(int i = 0; i < 4; i++){
 		imagePoints1.push_back(ofxCv::toCv(cam1Calib[i]));
 		imagePoints2.push_back(ofxCv::toCv(cam2Calib[i]));
